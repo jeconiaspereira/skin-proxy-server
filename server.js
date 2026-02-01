@@ -19,26 +19,23 @@ app.get("/price", async (req, res) => {
   }
 
   try {
-    const url = `https://steamcommunity.com/market/priceoverview/?appid=730&currency=7&market_hash_name=${encodeURIComponent(item)}`;
-    const response = await fetch(url);
-    const data = await response.json();
+    // 🔹 STEAM
+    const steamUrl = `https://steamcommunity.com/market/priceoverview/?appid=730&currency=7&market_hash_name=${encodeURIComponent(item)}`;
+    const steamRes = await fetch(steamUrl);
+    const steamData = await steamRes.json();
 
-    const result = {
-      updated: new Date().toISOString(),
-      markets: [
-        {
-          market: "Steam",
-          price: data.lowest_price || data.median_price || "N/A"
-        }
-      ]
-    };
+    const steamPrice = steamData.lowest_price || steamData.median_price || null;
 
-    cache[item] = { time: now, data: result };
-    res.json(result);
+    // 🔹 CSFLOAT (preço médio)
+    const csfloatUrl = `https://csfloat.com/api/v1/listings?market_hash_name=${encodeURIComponent(item)}`;
+    const csfloatRes = await fetch(csfloatUrl);
+    const csfloatData = await csfloatRes.json();
 
-  } catch (err) {
-    res.status(500).json({ error: "Steam fetch failed" });
-  }
-});
+    let csfloatPrice = null;
+    if (csfloatData && csfloatData.data && csfloatData.data.length > 0) {
+      csfloatPrice = "R$ " + (csfloatData.data[0].price / 100).toFixed(2);
+    }
 
-app.listen(PORT, () => console.log("Server running on port", PORT));
+    const markets = [];
+    if (steamPrice) markets.push({ market: "Steam", price: steamPrice });
+    if (csfloatPrice) markets.p
